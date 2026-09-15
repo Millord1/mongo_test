@@ -9,7 +9,7 @@ from src.database.mongodb import MongoDB
 
 project_root = Path(__file__).resolve().parents[2]
 data_dir = project_root / "data"
-load_dotenv(project_root / ".env")
+load_dotenv(project_root / ".env", override=False)
 
 con = duckdb.connect()
 

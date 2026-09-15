@@ -13,25 +13,24 @@ class BaseRepository:
 
     def __init__(self, db: Database | None = None):
         self._db = db
+        self._mongo_ctx = None
 
-    def __enter__(self):
         if self._db is None:
             self._mongo_ctx = MongoDB()
             self._db = self._mongo_ctx.__enter__()
+
+    def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if hasattr(self, "_mongo_ctx"):
+        if self._mongo_ctx:
             self._mongo_ctx.__exit__(exc_type, exc_val, exc_tb)
             self._db = None
 
     @property
     def db(self) -> Database:
         if self._db is None:
-            raise RuntimeError(
-                "La connexion n'est pas initialisée. "
-                "Utilisez 'with Repository() as repo:'"
-            )
+            raise RuntimeError("La connexion MongoDB n'est pas initialisée.")
         return self._db
 
     @property

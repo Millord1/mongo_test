@@ -10,7 +10,7 @@ from src.config.apis import KAGGLE_DATASET, DatasetNames
 project_root = Path(__file__).resolve().parents[2]
 data_dir = project_root / "data"
 data_dir.mkdir(parents=True, exist_ok=True)
-load_dotenv(project_root / ".env")
+load_dotenv(project_root / ".env", override=False)
 
 
 def get_expected_csv_filenames() -> set[str]:

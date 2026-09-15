@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from src.api.routers.orders import router as orders_router
 from src.database.mongodb import MongoDB
 from src.ingestion.importer import ensure_csv_files_present
+from src.ingestion.mongo_ingester import import_all_collections
 
 
 def seed_database_if_empty():
@@ -13,6 +14,11 @@ def seed_database_if_empty():
         ensure_csv_files_present()
     except Exception as e:
         print(f"🔴 Erreur lors de l'initialisation du dataset : {e}")
+
+    try:
+        import_all_collections()
+    except Exception as e:
+        print(f"🔴 Erreur lors de l'ingestion du dataset : {e}")
 
 
 @asynccontextmanager

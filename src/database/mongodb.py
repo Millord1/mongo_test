@@ -1,7 +1,10 @@
 import os
 
+from dotenv import load_dotenv
 from pymongo import MongoClient
 from pymongo.database import Database
+
+load_dotenv(override=False)
 
 
 class MongoDB:
@@ -11,7 +14,7 @@ class MongoDB:
         db_name: str | None = None,
     ):
         self.uri = uri or os.getenv("MONGO_URI", "mongodb://localhost:27017/")
-        self.db_name = db_name or os.getenv("MONGO_DB_NAME", "ecommerce_db")
+        self.db_name = db_name or os.getenv("MONGO_DATABASE", "ecommerce_db")
         self.client: MongoClient | None = None
         self.db: Database | None = None
 

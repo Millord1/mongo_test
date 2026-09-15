@@ -27,6 +27,10 @@ def get_orders(
         filters=filters,
     )
 
+    for item in items:
+        if "_id" in item:
+            item["_id"] = str(item["_id"])
+
     total_pages = ceil(total / params.size) if total > 0 else 1
 
     return PageResponse(
