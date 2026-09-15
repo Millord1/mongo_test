@@ -1,8 +1,8 @@
-from src.ingestion.importer import download_and_move_dataset
+from src.ingestion.mongo_ingester import import_all_collections
 
 
 def main():
-    download_and_move_dataset()
+    import_all_collections()
 
 
 if __name__ == "__main__":
