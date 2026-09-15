@@ -4,6 +4,8 @@ from pathlib import Path
 import kagglehub
 from dotenv import load_dotenv
 
+from src.config.apis import KAGGLE_DATASET
+
 project_root = Path(__file__).resolve().parents[2]
 load_dotenv(project_root / ".env")
 
@@ -28,7 +30,7 @@ def download_and_move_dataset() -> Path:
     print("Téléchargement du dataset Kaggle...")
 
     try:
-        cache_path = Path(kagglehub.dataset_download("olistbr/brazilian-ecommerce"))
+        cache_path = Path(kagglehub.dataset_download(KAGGLE_DATASET))
     except Exception as error:
         raise RuntimeError("Échec du téléchargement du dataset Kaggle.") from error
 
