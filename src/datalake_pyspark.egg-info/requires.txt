@@ -1,4 +1,0 @@
-python-dotenv>=1.0.1
-pymongo<5.0.0,>=4.6.0
-ruff==0.6.1
-kagglehub==1.0.2
