@@ -1,195 +1,242 @@
-import os
 from datetime import datetime
 from pathlib import Path
 
-import duckdb
 from dotenv import load_dotenv
-from pymongo import MongoClient
+from src.database.duck_db import DuckDB
 
 from src.config.apis import DatasetNames
+from src.config.sql import QueryNames
+from src.database.mongodb import MongoDB
 
 project_root = Path(__file__).resolve().parents[2]
 data_dir = project_root / "data"
-load_dotenv(project_root / ".env")
+sql_dir = project_root / "src" / "sql"
 
-client = MongoClient(os.environ.get("MONGO_URI", "mongodb://localhost:27017/"))
-db = client[os.environ.get("MONGO_DATABASE")]
-con = duckdb.connect()
-
-
-def read_csv(dataset: str):
-    path = data_dir / dataset
-    return con.sql(f"SELECT * FROM read_csv_auto('{path.as_posix()}')")
-
-
-def fetch_records(query) -> list[dict]:
-    """Convertit directement le résultat DuckDB en dictionnaires Python."""
-    rows = query.fetchall()
-    columns = [column[0] for column in query.description]
-    return [dict(zip(columns, row, strict=False)) for row in rows]
+load_dotenv(project_root / ".env", override=False)
 
 
 def clean_records(records: list[dict]) -> list[dict]:
-    """Nettoie les None et s'assure que les objets datetime sont au bon format BSON."""
+    """Nettoie les valeurs avant insertion BSON."""
     cleaned = []
+
     for record in records:
-        rec_copy = record.copy()
-        for key, value in rec_copy.items():
+        cleaned_record = record.copy()
+
+        for key, value in cleaned_record.items():
             if value is None:
-                rec_copy[key] = None
-            elif isinstance(value, str) and (
+                continue
+
+            if isinstance(value, str) and (
                 "_date" in key or "_timestamp" in key or "_at" in key
             ):
                 try:
-                    rec_copy[key] = datetime.fromisoformat(value)
+                    cleaned_record[key] = datetime.fromisoformat(value)
                 except ValueError:
                     pass
-        cleaned.append(rec_copy)
+
+        cleaned.append(cleaned_record)
+
     return cleaned
 
 
-def import_all_collections():
-    print("🚀 Début du nettoyage et de l'importation...")
+def replace_collection(collection, records: list[dict]):
+    """Remplace complètement le contenu d'une collection."""
+    collection.delete_many({})
 
-    print("- Import de la collection 'customers'...")
-    customers = fetch_records(read_csv(DatasetNames.customers))
-    db.customers.delete_many({})
-    db.customers.insert_many(clean_records(customers))
+    if records:
+        collection.insert_many(records)
 
-    print("- Import de la collection 'sellers'...")
-    sellers = fetch_records(read_csv(DatasetNames.sellers))
-    db.sellers.delete_many({})
-    db.sellers.insert_many(clean_records(sellers))
 
-    print("- Import de la collection 'products'...")
-    products_path = (data_dir / DatasetNames.products).as_posix()
-    translations_path = (data_dir / DatasetNames.category_translation).as_posix()
+def dataset_path(dataset: DatasetNames) -> str:
+    return (data_dir / dataset).as_posix()
 
-    products_query = con.sql(
-        f"""
-        SELECT
-            p.*,
-            t.product_category_name_english
-        FROM read_csv_auto('{products_path}') AS p
-        LEFT JOIN read_csv(
-            '{translations_path}',
-            header = true,
-            columns = {{
-                'product_category_name': 'VARCHAR',
-                'product_category_name_english': 'VARCHAR'
-            }}
-        ) AS t
-            ON p.product_category_name = t.product_category_name
-        """
+
+def import_query(
+    duckdb: DuckDB,
+    db,
+    query: QueryNames,
+    *,
+    id_field: str | None = None,
+    **params,
+):
+    """Exécute une requête SQL et importe son résultat dans MongoDB."""
+    print(f"- Import de la collection '{query.value}'...")
+
+    records = duckdb.records(duckdb.query(query, **params))
+
+    if id_field:
+        for record in records:
+            record["_id"] = record.pop(id_field)
+
+    replace_collection(
+        getattr(db, query.value),
+        clean_records(records),
     )
 
-    products = fetch_records(products_query)
-    db.products.delete_many({})
-    db.products.insert_many(clean_records(products))
 
+def create_orders_collection(duckdb: DuckDB, db):
     print("- Traitement et assemblage des données pour 'orders'...")
 
-    orders_path = (data_dir / DatasetNames.orders).as_posix()
-    items_path = (data_dir / DatasetNames.order_items).as_posix()
-    payments_path = (data_dir / DatasetNames.order_payments).as_posix()
-    reviews_path = (data_dir / DatasetNames.order_reviews).as_posix()
-
-    orders = con.sql(
-        f"""
-        SELECT
-            * EXCLUDE (
-                order_purchase_timestamp,
-                order_approved_at,
-                order_delivered_carrier_date,
-                order_delivered_customer_date,
-                order_estimated_delivery_date
-            ),
-
-            CAST(order_purchase_timestamp AS TIMESTAMP)
-                AS order_purchase_timestamp,
-
-            CAST(order_approved_at AS TIMESTAMP)
-                AS order_approved_at,
-
-            CAST(order_delivered_carrier_date AS TIMESTAMP)
-                AS order_delivered_carrier_date,
-
-            CAST(order_delivered_customer_date AS TIMESTAMP)
-                AS order_delivered_customer_date,
-
-            CAST(order_estimated_delivery_date AS TIMESTAMP)
-                AS order_estimated_delivery_date
-
-        FROM read_csv_auto('{orders_path}')
-        """
+    orders = duckdb.records(
+        duckdb.query(
+            QueryNames.ORDERS,
+            orders_path=dataset_path(DatasetNames.orders),
+        )
     )
 
-    items = con.sql(f"SELECT * FROM read_csv_auto('{items_path}')")
-    payments = con.sql(f"SELECT * FROM read_csv_auto('{payments_path}')")
-    reviews = con.sql(
-        f"""
-        SELECT
-            * EXCLUDE (
-                review_creation_date,
-                review_answer_timestamp
-            ),
+    items = duckdb.records(
+        duckdb.query(
+            QueryNames.ORDER_ITEMS,
+            items_path=dataset_path(DatasetNames.order_items),
+        )
+    )
 
-            CAST(review_creation_date AS TIMESTAMP)
-                AS review_creation_date,
+    payments = duckdb.records(
+        duckdb.query(
+            QueryNames.ORDER_PAYMENTS,
+            payments_path=dataset_path(DatasetNames.order_payments),
+        )
+    )
 
-            CAST(review_answer_timestamp AS TIMESTAMP)
-                AS review_answer_timestamp
-
-        FROM read_csv_auto('{reviews_path}')
-        """
+    reviews = duckdb.records(
+        duckdb.query(
+            QueryNames.ORDER_REVIEWS,
+            reviews_path=dataset_path(DatasetNames.order_reviews),
+        )
     )
 
     print("- Regroupement des items, paiements et avis...")
 
-    orders_records = fetch_records(orders)
-    items_records = fetch_records(items)
-    payments_records = fetch_records(payments)
-    reviews_records = fetch_records(reviews)
-
-    items_by_order = {}
-    for item in items_records:
-        item_data = item.copy()
-        order_id = item_data.pop("order_id")
-        items_by_order.setdefault(order_id, []).append(item_data)
-
-    payments_by_order = {}
-    for payment in payments_records:
-        payment_data = payment.copy()
-        order_id = payment_data.pop("order_id")
-        payments_by_order.setdefault(order_id, []).append(payment_data)
-
-    reviews_by_order = {}
-    for review in reviews_records:
-        review_data = review.copy()
-        order_id = review_data.pop("order_id")
-        reviews_by_order.setdefault(order_id, []).append(review_data)
-
-    print("- Assemblage des documents finalisé...")
+    items_by_order = group_by_order(items)
+    payments_by_order = group_by_order(payments)
+    reviews_by_order = group_by_order(reviews)
 
     final_orders = []
-    for order in orders_records:
-        order_doc = order.copy()
-        order_id = order_doc.pop("order_id")
 
-        order_doc["_id"] = order_id
-        order_doc["items"] = items_by_order.get(order_id, [])
-        order_doc["payments"] = payments_by_order.get(order_id, [])
-        order_doc["reviews"] = reviews_by_order.get(order_id, [])
+    for order in orders:
+        order_id = order.pop("order_id")
 
-        final_orders.append(order_doc)
+        order["_id"] = order_id
+        order["items"] = items_by_order.get(order_id, [])
+        order["payments"] = payments_by_order.get(order_id, [])
+        order["reviews"] = reviews_by_order.get(order_id, [])
+
+        final_orders.append(order)
 
     print("- Insertion dans MongoDB (collection 'orders')...")
 
-    db.orders.delete_many({})
-    db.orders.insert_many(clean_records(final_orders))
+    replace_collection(
+        db.orders,
+        clean_records(final_orders),
+    )
 
-    print("✅ Import terminé avec succès !")
+
+def group_by_order(records: list[dict]) -> dict[str, list[dict]]:
+    """Regroupe des documents par order_id."""
+    grouped = {}
+
+    for record in records:
+        record = record.copy()
+        order_id = record.pop("order_id")
+
+        grouped.setdefault(order_id, []).append(record)
+
+    return grouped
+
+
+def import_all_collections():
+    print("Nettoyage et importation")
+
+    with DuckDB(sql_dir) as duckdb, MongoDB() as db:
+        import_query(
+            duckdb,
+            db,
+            QueryNames.CUSTOMERS,
+            id_field="customer_id",
+            customers_path=dataset_path(DatasetNames.customers),
+        )
+
+        import_query(
+            duckdb,
+            db,
+            QueryNames.SELLERS,
+            id_field="seller_id",
+            sellers_path=dataset_path(DatasetNames.sellers),
+        )
+
+        import_query(
+            duckdb,
+            db,
+            QueryNames.PRODUCTS,
+            id_field="product_id",
+            products_path=dataset_path(DatasetNames.products),
+            translations_path=dataset_path(DatasetNames.category_translation),
+        )
+
+        create_orders_collection(duckdb, db)
+
+        print("\nCréation des collections analytiques")
+
+        import_query(
+            duckdb,
+            db,
+            QueryNames.MONTHLY_METRICS,
+            id_field="month",
+            orders_path=dataset_path(DatasetNames.orders),
+            items_path=dataset_path(DatasetNames.order_items),
+            reviews_path=dataset_path(DatasetNames.order_reviews),
+        )
+
+        import_query(
+            duckdb,
+            db,
+            QueryNames.PRODUCT_ANALYTICS,
+            id_field="product_id",
+            products_path=dataset_path(DatasetNames.products),
+            items_path=dataset_path(DatasetNames.order_items),
+        )
+
+        import_query(
+            duckdb,
+            db,
+            QueryNames.CATEGORY_ANALYTICS,
+            id_field="category",
+            products_path=dataset_path(DatasetNames.products),
+            items_path=dataset_path(DatasetNames.order_items),
+        )
+
+        import_query(
+            duckdb,
+            db,
+            QueryNames.SELLER_ANALYTICS,
+            id_field="seller_id",
+            items_path=dataset_path(DatasetNames.order_items),
+            orders_path=dataset_path(DatasetNames.orders),
+        )
+
+        import_query(
+            duckdb,
+            db,
+            QueryNames.CUSTOMER_ANALYTICS,
+            id_field="customer_id",
+            customers_path=dataset_path(DatasetNames.customers),
+            orders_path=dataset_path(DatasetNames.orders),
+            items_path=dataset_path(DatasetNames.order_items),
+        )
+
+        import_query(
+            duckdb,
+            db,
+            QueryNames.GEOGRAPHY_ANALYTICS,
+            id_field="state",
+            customers_path=dataset_path(DatasetNames.customers),
+            orders_path=dataset_path(DatasetNames.orders),
+            items_path=dataset_path(DatasetNames.order_items),
+        )
+
+    print("\n✅ Import terminé avec succès !")
 
 
 if __name__ == "__main__":
+    import_all_collections()
     import_all_collections()

@@ -5,8 +5,12 @@ from fastapi import APIRouter, Depends
 
 from src.api.pagination import OrderQueryParams, PageResponse
 from src.repositories.order_repository import OrderRepository
+from src.schemas.orders import OrderResponse
 
-router = APIRouter(prefix="/orders", tags=["Orders"])
+router = APIRouter(
+    prefix="/orders",
+    tags=["Orders"],
+)
 
 
 def get_order_repository() -> Generator[OrderRepository, None, None]:
@@ -14,12 +18,23 @@ def get_order_repository() -> Generator[OrderRepository, None, None]:
         yield repo
 
 
-@router.get("", response_model=PageResponse[dict])
+order_query_params_dependency = Depends()
+order_repository_dependency = Depends(get_order_repository)
+
+
+@router.get(
+    "",
+    response_model=PageResponse[OrderResponse],
+    response_model_by_alias=True,
+)
 def get_orders(
-    params: OrderQueryParams = Depends(),
-    repo: OrderRepository = Depends(get_order_repository),
+    params: OrderQueryParams = order_query_params_dependency,
+    repo: OrderRepository = order_repository_dependency,
 ):
-    filters = {"order_status": params.status} if params.status else {}
+    filters = {}
+
+    if params.status:
+        filters["order_status"] = params.status
 
     items, total = repo.get_all_offset(
         skip=params.skip,
@@ -27,11 +42,7 @@ def get_orders(
         filters=filters,
     )
 
-    for item in items:
-        if "_id" in item:
-            item["_id"] = str(item["_id"])
-
-    total_pages = ceil(total / params.size) if total > 0 else 1
+    total_pages = ceil(total / params.size) if total else 1
 
     return PageResponse(
         items=items,

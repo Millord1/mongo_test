@@ -19,7 +19,8 @@ def get_expected_csv_filenames() -> set[str]:
 
 
 def download_and_move_dataset() -> Path:
-    """Télécharge le dataset depuis Kaggle et copie tous les fichiers CSV dans data_dir."""
+    """Télécharge le dataset depuis Kaggle et copie tous les fichiers CSV
+    dans data_dir."""
     print("Téléchargement du dataset Kaggle...")
 
     try:
@@ -55,7 +56,8 @@ def ensure_csv_files_present():
 
     if existing_filenames == expected_filenames:
         print(
-            f"Les {len(expected_filenames)} fichiers CSV requis sont tous présents dans {data_dir}."
+            f"Les {len(expected_filenames)} fichiers CSV requis sont tous présents "
+            f"dans {data_dir}."
         )
         return
 

@@ -5,30 +5,21 @@ from pathlib import Path
 import kagglehub
 from dotenv import load_dotenv
 
-from src.config.apis import KAGGLE_DATASET
+from src.config.apis import KAGGLE_DATASET, DatasetNames
 
 project_root = Path(__file__).resolve().parents[2]
-load_dotenv(project_root / ".env")
-
 data_dir = project_root / "data"
 data_dir.mkdir(parents=True, exist_ok=True)
+load_dotenv(project_root / ".env", override=False)
+
+
+def get_expected_csv_filenames() -> set[str]:
+    """Extrait la liste exacte des noms de fichiers définis dans l'enum DatasetNames."""
+    return {dataset.value for dataset in DatasetNames}
 
 
 def download_and_move_dataset() -> Path:
-    """Download the Olist dataset from Kaggle and copy all CSV files to data_dir.
-
-    Raises:
-        RuntimeError: Download exception
-        FileNotFoundError: If no CSV files are found
-
-    Returns:
-        Path: Path to the data directory containing all CSV files
-    """
-
-    if list(data_dir.glob("*.csv")):
-        print(f"Fichiers CSV déjà présents dans : {data_dir}")
-        return data_dir
-
+    """Télécharge le dataset depuis Kaggle et copie tous les fichiers CSV dans data_dir."""
     print("Téléchargement du dataset Kaggle...")
 
     try:
@@ -49,7 +40,34 @@ def download_and_move_dataset() -> Path:
     return data_dir
 
 
+def clean_data_dir():
+    """Supprime tous les fichiers CSV présents dans le dossier data_dir."""
+    print(f"🧹 Nettoyage du dossier {data_dir}...")
+    for file in data_dir.glob("*.csv"):
+        file.unlink()
+
+
+def ensure_csv_files_present():
+    """Vérifie la présence exacte des 8 fichiers définis dans DatasetNames."""
+    expected_filenames = get_expected_csv_filenames()
+    existing_files = list(data_dir.glob("*.csv"))
+    existing_filenames = {file.name for file in existing_files}
+
+    if existing_filenames == expected_filenames:
+        print(
+            f"Les {len(expected_filenames)} fichiers CSV requis sont tous présents dans {data_dir}."
+        )
+        return
+
+    print("Fichiers manquants ou invalides dans data/.")
+    clean_data_dir()
+
+    print("Téléchargement du dataset...")
+    download_and_move_dataset()
+
+
 def inspect_csv_headers():
+    """Affiche les en-têtes de tous les fichiers CSV présents dans data/."""
     csv_files = sorted(list(data_dir.glob("*.csv")))
 
     if not csv_files:
@@ -60,9 +78,5 @@ def inspect_csv_headers():
         with open(file_path, mode="r", encoding="utf-8") as f:
             reader = csv.reader(f)
             headers = next(reader, None)
-            print(f"\n📄 {file_path.name}")
+            print(f"\n{file_path.name}")
             print(f"   Colonnes ({len(headers) if headers else 0}) : {headers}")
-
-
-if __name__ == "__main__":
-    inspect_csv_headers()

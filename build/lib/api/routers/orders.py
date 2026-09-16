@@ -1,58 +1,42 @@
 from math import ceil
+from typing import Generator
 
-from fastapi import APIRouter, Depends, Query
-from pymongo import MongoClient
+from fastapi import APIRouter, Depends
 
-from src.api.pagination import PageResponse, PaginationParams
+from src.api.pagination import OrderQueryParams, PageResponse
+from src.repositories.order_repository import OrderRepository
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
-client = MongoClient("mongodb://localhost:27017/")
-db = client["ecommerce_db"]
+
+def get_order_repository() -> Generator[OrderRepository, None, None]:
+    with OrderRepository() as repo:
+        yield repo
 
 
 @router.get("", response_model=PageResponse[dict])
 def get_orders(
-    pagination: PaginationParams = Depends(),
-    status: str | None = Query(None, description="Filtrer par statut"),
+    params: OrderQueryParams = Depends(),
+    repo: OrderRepository = Depends(get_order_repository),
 ):
-    query = {}
-    if status:
-        query["order_status"] = status
+    filters = {"order_status": params.status} if params.status else {}
 
-    total = db.orders.count_documents(query)
-
-    cursor = (
-        db.orders.find(query)
-        .sort("_id", 1)
-        .skip(pagination.skip)
-        .limit(pagination.size)
+    items, total = repo.get_all_offset(
+        skip=params.skip,
+        limit=params.size,
+        filters=filters,
     )
 
-    items = list(cursor)
+    for item in items:
+        if "_id" in item:
+            item["_id"] = str(item["_id"])
 
-    total_pages = ceil(total / pagination.size) if total > 0 else 1
+    total_pages = ceil(total / params.size) if total > 0 else 1
 
     return PageResponse(
         items=items,
         total=total,
-        page=pagination.page,
-        size=pagination.size,
+        page=params.page,
+        size=params.size,
         total_pages=total_pages,
     )
-
-
-@router.get("/cursor", response_model=list[dict])
-def get_orders_cursor(
-    last_id: str | None = Query(
-        None, description="ID du dernier document de la page précédente"
-    ),
-    limit: int = Query(20, ge=1, le=100),
-):
-    query = {}
-    if last_id:
-        # Reprend la lecture juste après l'ID fourni
-        query["_id"] = {"$gt": last_id}
-
-    cursor = db.orders.find(query).sort("_id", 1).limit(limit)
-    return list(cursor)

@@ -5,3 +5,5 @@ env
 data/*
 build/
 .env.docker
+UNKNOWN.egg-info
+build/
