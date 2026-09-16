@@ -1,4 +1,3 @@
-import traceback
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -9,22 +8,6 @@ from src.api.routers.orders import router as orders_router
 from src.api.routers.products import router as products_router
 from src.api.routers.sellers import router as sellers_router
 from src.database.mongodb import MongoDB
-from src.ingestion.importer import ensure_csv_files_present
-from src.ingestion.mongo_ingester import import_all_collections
-
-
-def seed_database_if_empty():
-    """Point d'entrée d'initialisation au démarrage de FastAPI."""
-    try:
-        ensure_csv_files_present()
-    except Exception as e:
-        print(f"🔴 Erreur lors de l'initialisation du dataset : {e}")
-
-    try:
-        import_all_collections()
-    except Exception as e:
-        print(f"🔴 Erreur lors de l'ingestion du dataset : {e}")
-        traceback.print_exc()
 
 
 @asynccontextmanager
@@ -36,11 +19,8 @@ async def lifespan(app: FastAPI):
         with MongoDB() as db:
             db.command("ping")
             print("🟢 Connexion à MongoDB réussie.")
-
-        seed_database_if_empty()
-
     except Exception as e:
-        print(f"🔴 Erreur lors de l'initialisation de la base de données : {e}")
+        print(f"🔴 Erreur de connexion à MongoDB : {e}")
 
     yield
 

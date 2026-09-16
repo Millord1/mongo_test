@@ -61,7 +61,7 @@ def orphan_count(
         LEFT JOIN {source(parent)} AS parent
             ON child.{child_column} = parent.{parent_column}
         WHERE child.{child_column} IS NOT NULL
-          AND parent.{parent_column} IS NULL
+            AND parent.{parent_column} IS NULL
         """,
     )
 
@@ -314,16 +314,16 @@ def main() -> None:
                 {ident(later)}
                 AS TIMESTAMP
             ) IS NOT NULL
-              AND TRY_CAST(
+                AND TRY_CAST(
                 {ident(earlier)}
                 AS TIMESTAMP
             ) IS NOT NULL
-              AND TRY_CAST(
+                AND TRY_CAST(
                 {ident(later)}
                 AS TIMESTAMP
             )
-              <
-              TRY_CAST(
+                <
+                TRY_CAST(
                 {ident(earlier)}
                 AS TIMESTAMP
             )

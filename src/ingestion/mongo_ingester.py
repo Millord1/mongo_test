@@ -8,6 +8,8 @@ from src.config.sql import QueryNames
 from src.database.duckdb import DuckDB
 from src.database.mongodb import MongoDB
 
+from src.ingestion.importer import ensure_csv_files_present
+
 project_root = Path(__file__).resolve().parents[2]
 data_dir = project_root / "data"
 sql_dir = project_root / "src" / "sql"
@@ -253,5 +255,11 @@ def import_all_collections():
     print("\n✅ Import terminé avec succès !")
 
 
-if __name__ == "__main__":
+def run_ingestion():
+    """Vérifie les fichiers sources puis importe les données dans MongoDB."""
+    ensure_csv_files_present()
     import_all_collections()
+
+
+if __name__ == "__main__":
+    run_ingestion()
