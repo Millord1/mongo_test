@@ -7,3 +7,4 @@ build/
 .env.docker
 UNKNOWN.egg-info
 build/
+.kilo
