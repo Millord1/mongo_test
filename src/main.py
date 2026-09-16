@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from pymongo.errors import PyMongoError
 
 from src.api.routers.analytics import router as analytics_router
 from src.api.routers.customers import router as customers_router
@@ -33,6 +35,18 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(PyMongoError)
+async def mongo_exception_handler(
+    request: Request,
+    exc: PyMongoError,
+):
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "Service MongoDB temporairement indisponible"},
+    )
+
 
 app.include_router(orders_router)
 app.include_router(customers_router)
