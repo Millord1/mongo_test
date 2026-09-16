@@ -1,82 +1,42 @@
-```bash
-mongoimport \
-  --db new_york \
-  --collection restaurants \
-  --file Restaurants.json \
-  --jsonArray
-```
+# Modélisation MongoDB du projet Olist
 
-```bash
-db.movies.distinct("title").length
-```
-résultat: 3883
+## Objectif
 
-## Question 14
+Le dataset Olist est initialement composé de plusieurs fichiers CSV reliés
+entre eux par des identifiants.
 
-```javascript
-db.users.updateMany(
-  {},
-  [
-    {
-      $set: {
-        num_ratings: { $size: "$movies" }
-      }
-    }
-  ]
-)
-```
+Le choix a été fait de ne pas reproduire directement le modèle relationnel
+dans MongoDB. Le modèle documentaire est construit en fonction des usages
+de consultation de l'API.
 
-```javascript
-db.users.countDocuments({
-  num_ratings: { $gte: 90 }
-})
-```
-3133
+## Collections principales
 
-## Question 16
+Le projet utilise quatre collections métier principales :
 
-```javascript
-movie_lens> db.users.aggregate([
-|   { $unwind: "$movies" },
-|   { $match: { "movies.movieid": 296 } },
-|   {
-|     $group: {
-|       _id: "$movies.movieid",
-|       average_rating: { $avg: "$movies.rating" }
-|     }
-|   }
-| ])
-[ { _id: 296, average_rating: 4.278212805158913 } ]
+- `customers`
+- `products`
+- `sellers`
+- `orders`
 
-```
+## Collection `orders`
 
-## Question 17
+La collection `orders` contient les informations générales d'une commande :
 
-```javascript
-db.users.aggregate([
-  {
-    $project: {
-      _id: 0,
-      id: "$_id",
-      name: 1,
-      max_rating: { $max: "$movies.rating" },
-      min_rating: { $min: "$movies.rating" },
-      avg_rating: { $avg: "$movies.rating" }
-    }
-  },
-  {
-    $sort: { avg_rating: 1 }
-  }
-])
-```
+- identifiant de commande ;
+- identifiant client ;
+- statut ;
+- dates principales.
 
-```bash
- {
-    name: 'Tomoko Barrett',
-    id: 5944,
-    max_rating: 5,
-    min_rating: 1,
-    avg_rating: 2.2
-  },
+Les articles, paiements et avis sont directement embarqués dans le document
+de la commande sous forme de tableaux :
 
-```
+```json
+{
+  "_id": "order_id",
+  "customer_id": "customer_id",
+  "order_status": "delivered",
+  "order_purchase_timestamp": "...",
+  "items": [],
+  "payments": [],
+  "reviews": []
+}
