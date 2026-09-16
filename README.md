@@ -40,3 +40,50 @@ de la commande sous forme de tableaux :
   "payments": [],
   "reviews": []
 }
+
+## Analyse avec `explain("executionStats")`
+
+La requête suivante récupère les commandes d'un client triées par date décroissante :
+
+```javascript
+db.orders.find({
+  customer_id: "9ef432eb6251297304e76186b10a928d"
+})
+.sort({
+  order_purchase_timestamp: -1
+})
+.explain("executionStats")
+```
+
+Avant la création de l'index, MongoDB utilise un `COLLSCAN` et examine **99 441 documents** pour en retourner 1.
+
+```text
+totalDocsExamined: 99441
+totalKeysExamined: 0
+executionTimeMillis: 69
+```
+
+Après création de l'index composé :
+
+```javascript
+{
+  customer_id: 1,
+  order_purchase_timestamp: -1
+}
+```
+
+MongoDB utilise un `IXSCAN` :
+
+```text
+totalDocsExamined: 1
+totalKeysExamined: 1
+executionTimeMillis: 12
+```
+
+| Indicateur | Avant | Après |
+|---|---:|---:|
+| Documents examinés | 99 441 | 1 |
+| Temps d'exécution | 69 ms | 12 ms |
+| Plan | `COLLSCAN` | `IXSCAN` |
+
+L'index permet donc d'éviter le parcours complet de la collection et réduit fortement le travail effectué par MongoDB.

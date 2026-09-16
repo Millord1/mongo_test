@@ -159,6 +159,22 @@ def group_by_order(records: list[dict]) -> dict[str, list[dict]]:
     return grouped
 
 
+def create_indexes(db):
+    """Crée les index MongoDB utiles aux requêtes de l'API."""
+
+    print("\nCréation des index MongoDB...")
+
+    index_name = db.orders.create_index(
+        [
+            ("customer_id", 1),
+            ("order_purchase_timestamp", -1),
+        ],
+        name="idx_customer_purchase_date",
+    )
+
+    print(f"  ✓ Index créé : {index_name}")
+
+
 def import_all_collections():
     print("Nettoyage et importation")
 
@@ -251,6 +267,8 @@ def import_all_collections():
             orders_path=dataset_path(DatasetNames.orders),
             items_path=dataset_path(DatasetNames.order_items),
         )
+
+        create_indexes(db)
 
     print("\n✅ Import terminé avec succès !")
 
