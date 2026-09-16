@@ -1,6 +1,18 @@
 from datetime import datetime
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class OrderStatus(StrEnum):
+    DELIVERED = "delivered"
+    SHIPPED = "shipped"
+    CANCELED = "canceled"
+    INVOICED = "invoiced"
+    PROCESSING = "processing"
+    CREATED = "created"
+    APPROVED = "approved"
+    UNAVAILABLE = "unavailable"
 
 
 class OrderResponse(BaseModel):
@@ -11,7 +23,7 @@ class OrderResponse(BaseModel):
     id: str = Field(alias="_id")
 
     customer_id: str
-    order_status: str
+    order_status: OrderStatus
 
     order_purchase_timestamp: datetime | None = None
     order_approved_at: datetime | None = None
