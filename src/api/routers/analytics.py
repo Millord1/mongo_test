@@ -3,6 +3,7 @@ from typing import Generator
 from fastapi import APIRouter, Depends
 
 from src.repositories.analytics_repository import AnalyticsRepository
+from src.repositories.order_repository import OrderRepository
 from src.schemas.analytics import (
     CategoryAnalyticsResponse,
     CustomerAnalyticsResponse,
@@ -18,12 +19,19 @@ router = APIRouter(
 )
 
 
-def get_analytics_repository() -> Generator[AnalyticsRepository, None, None]:
+def get_analytics_repository():
     with AnalyticsRepository() as repo:
         yield repo
 
 
+def get_order_repository():
+    with OrderRepository() as repo:
+        yield repo
+
+
 analytics_repository_dependency = Depends(get_analytics_repository)
+
+order_repository_dependency = Depends(get_order_repository)
 
 
 @router.get(
@@ -90,3 +98,17 @@ def get_geography_analytics(
     repo: AnalyticsRepository = analytics_repository_dependency,
 ):
     return repo.get_geography_analytics()
+
+
+@router.get("/orders-by-status")
+def get_orders_by_status(
+    repo: OrderRepository = order_repository_dependency,
+):
+    return repo.aggregate_orders_by_status()
+
+
+@router.get("/payments-by-type")
+def get_payments_by_type(
+    repo: OrderRepository = order_repository_dependency,
+):
+    return repo.aggregate_payments_by_type()
