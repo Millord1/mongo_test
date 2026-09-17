@@ -92,38 +92,51 @@ _NORMALIZATION = {
 class AnalyticsRepository(BaseRepository):
     collection_name = "monthly_metrics"
 
-    def get_monthly_metrics(self) -> list[dict]:
-        return self._get_sorted_documents("monthly_metrics")
+    def get_monthly_metrics(self, limit: int = 20) -> list[dict]:
+        return self._get_sorted_documents("monthly_metrics", limit)
 
-    def get_product_analytics(self) -> list[dict]:
-        return self._get_sorted_documents("product_analytics")
+    def get_product_analytics(self, limit: int = 20) -> list[dict]:
+        return self._get_sorted_documents("product_analytics", limit)
 
-    def get_category_analytics(self) -> list[dict]:
-        return self._get_sorted_documents("category_analytics")
+    def get_category_analytics(self, limit: int = 20) -> list[dict]:
+        return self._get_sorted_documents("category_analytics", limit)
 
-    def get_seller_analytics(self) -> list[dict]:
-        return self._get_sorted_documents("seller_analytics")
+    def get_seller_analytics(self, limit: int = 20) -> list[dict]:
+        return self._get_sorted_documents("seller_analytics", limit)
 
-    def get_customer_analytics(self) -> list[dict]:
-        return self._get_sorted_documents("customer_analytics")
+    def get_customer_analytics(self, limit: int = 20) -> list[dict]:
+        return self._get_sorted_documents("customer_analytics", limit)
 
-    def get_geography_analytics(self) -> list[dict]:
-        return self._get_sorted_documents("geography_analytics")
+    def get_geography_analytics(self, limit: int = 20) -> list[dict]:
+        return self._get_sorted_documents("geography_analytics", limit)
 
-    def _get_sorted_documents(self, collection_name: str) -> list[dict]:
+    def _get_sorted_documents(
+        self,
+        collection_name: str,
+        limit: int = 20,
+    ) -> list[dict]:
         collection = getattr(self.db, collection_name, None)
+
         if collection is None:
             collection = self.db[collection_name]
 
         cursor = collection.find()
+
         sort = getattr(cursor, "sort", None)
+
         if sort is not None and not isinstance(cursor, list):
             try:
                 sorted_cursor = sort("_id", 1)
             except TypeError:
                 sorted_cursor = None
+
             if sorted_cursor is not None:
                 cursor = sorted_cursor
+
+        limit_method = getattr(cursor, "limit", None)
+
+        if callable(limit_method):
+            cursor = limit_method(limit)
 
         return self._normalize_documents(
             list(cursor),

@@ -1,6 +1,4 @@
-from typing import Generator
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from src.repositories.analytics_repository import AnalyticsRepository
 from src.repositories.order_repository import OrderRepository
@@ -40,9 +38,10 @@ order_repository_dependency = Depends(get_order_repository)
     response_model_by_alias=True,
 )
 def get_monthly_metrics(
+    limit: int = Query(default=20, ge=1, le=100),
     repo: AnalyticsRepository = analytics_repository_dependency,
 ):
-    return repo.get_monthly_metrics()
+    return repo.get_monthly_metrics(limit=limit)
 
 
 @router.get(
@@ -51,9 +50,10 @@ def get_monthly_metrics(
     response_model_by_alias=True,
 )
 def get_product_analytics(
+    limit: int = Query(default=20, ge=1, le=100),
     repo: AnalyticsRepository = analytics_repository_dependency,
 ):
-    return repo.get_product_analytics()
+    return repo.get_product_analytics(limit=limit)
 
 
 @router.get(
@@ -62,9 +62,10 @@ def get_product_analytics(
     response_model_by_alias=True,
 )
 def get_category_analytics(
+    limit: int = Query(default=20, ge=1, le=100),
     repo: AnalyticsRepository = analytics_repository_dependency,
 ):
-    return repo.get_category_analytics()
+    return repo.get_category_analytics(limit=limit)
 
 
 @router.get(
@@ -73,9 +74,10 @@ def get_category_analytics(
     response_model_by_alias=True,
 )
 def get_seller_analytics(
+    limit: int = Query(default=20, ge=1, le=100),
     repo: AnalyticsRepository = analytics_repository_dependency,
 ):
-    return repo.get_seller_analytics()
+    return repo.get_seller_analytics(limit=limit)
 
 
 @router.get(
@@ -84,9 +86,10 @@ def get_seller_analytics(
     response_model_by_alias=True,
 )
 def get_customer_analytics(
+    limit: int = Query(default=20, ge=1, le=100),
     repo: AnalyticsRepository = analytics_repository_dependency,
 ):
-    return repo.get_customer_analytics()
+    return repo.get_customer_analytics(limit=limit)
 
 
 @router.get(
@@ -95,9 +98,10 @@ def get_customer_analytics(
     response_model_by_alias=True,
 )
 def get_geography_analytics(
+    limit: int = Query(default=20, ge=1, le=100),
     repo: AnalyticsRepository = analytics_repository_dependency,
 ):
-    return repo.get_geography_analytics()
+    return repo.get_geography_analytics(limit=limit)
 
 
 @router.get("/orders-by-status")
