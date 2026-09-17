@@ -1,13 +1,11 @@
 from math import ceil
 from typing import Generator
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.api.pagination import OrderQueryParams, PageResponse
 from src.repositories.order_repository import OrderRepository
 from src.schemas.orders import OrderResponse
-
-from fastapi import APIRouter, Depends, HTTPException, Query
 
 router = APIRouter(
     prefix="/orders",

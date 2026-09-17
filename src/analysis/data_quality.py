@@ -127,7 +127,11 @@ def main() -> None:
             """
         ).fetchone()
 
-        missing = [(column, count) for column, count in zip(columns, values) if count]
+        missing = [
+            (column, count)
+            for column, count in zip(columns, values, strict=False)
+            if count
+        ]
 
         lines += [
             f"### {dataset.value}",

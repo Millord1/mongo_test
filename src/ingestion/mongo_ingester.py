@@ -7,7 +7,6 @@ from src.config.apis import DatasetNames
 from src.config.sql import QueryNames
 from src.database.duckdb import DuckDB
 from src.database.mongodb import MongoDB
-
 from src.ingestion.importer import ensure_csv_files_present
 
 project_root = Path(__file__).resolve().parents[2]

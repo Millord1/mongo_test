@@ -1,9 +1,10 @@
 from datetime import datetime
 from unittest import TestCase, skipIf
-from pymongo.errors import PyMongoError
-from src.main import mongo_exception_handler
 
 from fastapi import FastAPI
+from pymongo.errors import PyMongoError
+
+from src.main import mongo_exception_handler
 
 try:
     from fastapi.testclient import TestClient
@@ -11,7 +12,7 @@ except ImportError:
     TestClient = None
 
 from src.api.routers import analytics, customers, orders, products
-from src.repositories.analytics_repository import AnalyticsRepository, _NORMALIZATION
+from src.repositories.analytics_repository import _NORMALIZATION, AnalyticsRepository
 from src.schemas.analytics import (
     CategoryAnalyticsResponse,
     CustomerAnalyticsResponse,
