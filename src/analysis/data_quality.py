@@ -22,6 +22,21 @@ def scalar(db, sql: str) -> int:
     return int(db.execute(sql).fetchone()[0] or 0)
 
 
+def column_types(
+    db,
+    dataset: DatasetNames,
+) -> list[tuple[str, str]]:
+    rows = db.execute(
+        f"""
+        DESCRIBE
+        SELECT *
+        FROM {source(dataset)}
+        """
+    ).fetchall()
+
+    return [(column_name, column_type) for column_name, column_type, *_ in rows]
+
+
 def duplicate_count(
     db,
     dataset: DatasetNames,
@@ -101,7 +116,34 @@ def main() -> None:
 
     lines += [
         "",
-        "## 2. Valeurs manquantes",
+        "## 2. Types des colonnes",
+        "",
+        (
+            "Les types ci-dessous sont inférés automatiquement "
+            "par DuckDB à partir des fichiers CSV."
+        ),
+        "",
+    ]
+
+    for dataset in DatasetNames:
+        lines += [
+            f"### {dataset.value}",
+            "",
+            "| Colonne | Type inféré |",
+            "|---|---|",
+        ]
+
+        for column_name, column_type in column_types(
+            db,
+            dataset,
+        ):
+            lines.append(f"| `{column_name}` | `{column_type}` |")
+
+        lines.append("")
+
+    lines += [
+        "",
+        "## 3. Valeurs manquantes",
         "",
     ]
 
@@ -129,7 +171,11 @@ def main() -> None:
 
         missing = [
             (column, count)
-            for column, count in zip(columns, values, strict=False)
+            for column, count in zip(
+                columns,
+                values,
+                strict=False,
+            )
             if count
         ]
 
@@ -185,7 +231,7 @@ def main() -> None:
     ]
 
     lines += [
-        "## 3. Doublons sur les clés",
+        "## 4. Doublons sur les clés",
         "",
         "| Fichier | Clé | Doublons supplémentaires |",
         "|---|---|---:|",
@@ -249,7 +295,7 @@ def main() -> None:
 
     lines += [
         "",
-        "## 4. Intégrité des relations",
+        "## 5. Intégrité des relations",
         "",
         "| Contrôle | Lignes concernées |",
         "|---|---:|",
@@ -299,7 +345,7 @@ def main() -> None:
 
     lines += [
         "",
-        "## 5. Cohérence des dates",
+        "## 6. Cohérence des dates",
         "",
         "| Contrôle | Lignes concernées |",
         "|---|---:|",
@@ -338,12 +384,12 @@ def main() -> None:
 
     lines += [
         "",
-        "## 6. Conclusion",
+        "## 7. Conclusion",
         "",
         (
             "Ce rapport documente les volumes, "
-            "valeurs manquantes, doublons, "
-            "relations entre fichiers et "
+            "types de colonnes, valeurs manquantes, "
+            "doublons, relations entre fichiers et "
             "incohérences de dates avant "
             "l'import MongoDB."
         ),

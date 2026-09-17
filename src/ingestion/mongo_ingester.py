@@ -73,9 +73,7 @@ def import_query(
     print(f"- Import de la collection '{query.value}'...")
 
     records = duckdb.records(duckdb.query(query, **params))
-    print(f"DEBUG {query.value}:")
-    print(records[0] if records else "Aucun résultat")
-    print(f"Colonnes: {list(records[0].keys()) if records else []}")
+
     if id_field:
         for record in records:
             record["_id"] = record.pop(id_field)

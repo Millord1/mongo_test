@@ -13,7 +13,99 @@
 | `olist_order_payments_dataset.csv` | 103,886 |
 | `olist_order_reviews_dataset.csv` | 99,224 |
 
-## 2. Valeurs manquantes
+## 2. Types des colonnes
+
+Les types ci-dessous sont inférés automatiquement par DuckDB à partir des fichiers CSV.
+
+### olist_customers_dataset.csv
+
+| Colonne | Type inféré |
+|---|---|
+| `customer_id` | `VARCHAR` |
+| `customer_unique_id` | `VARCHAR` |
+| `customer_zip_code_prefix` | `VARCHAR` |
+| `customer_city` | `VARCHAR` |
+| `customer_state` | `VARCHAR` |
+
+### olist_sellers_dataset.csv
+
+| Colonne | Type inféré |
+|---|---|
+| `seller_id` | `VARCHAR` |
+| `seller_zip_code_prefix` | `VARCHAR` |
+| `seller_city` | `VARCHAR` |
+| `seller_state` | `VARCHAR` |
+
+### olist_products_dataset.csv
+
+| Colonne | Type inféré |
+|---|---|
+| `product_id` | `VARCHAR` |
+| `product_category_name` | `VARCHAR` |
+| `product_name_lenght` | `BIGINT` |
+| `product_description_lenght` | `BIGINT` |
+| `product_photos_qty` | `BIGINT` |
+| `product_weight_g` | `BIGINT` |
+| `product_length_cm` | `BIGINT` |
+| `product_height_cm` | `BIGINT` |
+| `product_width_cm` | `BIGINT` |
+
+### product_category_name_translation.csv
+
+| Colonne | Type inféré |
+|---|---|
+| `product_category_name` | `VARCHAR` |
+| `product_category_name_english` | `VARCHAR` |
+
+### olist_orders_dataset.csv
+
+| Colonne | Type inféré |
+|---|---|
+| `order_id` | `VARCHAR` |
+| `customer_id` | `VARCHAR` |
+| `order_status` | `VARCHAR` |
+| `order_purchase_timestamp` | `TIMESTAMP` |
+| `order_approved_at` | `TIMESTAMP` |
+| `order_delivered_carrier_date` | `TIMESTAMP` |
+| `order_delivered_customer_date` | `TIMESTAMP` |
+| `order_estimated_delivery_date` | `TIMESTAMP` |
+
+### olist_order_items_dataset.csv
+
+| Colonne | Type inféré |
+|---|---|
+| `order_id` | `VARCHAR` |
+| `order_item_id` | `BIGINT` |
+| `product_id` | `VARCHAR` |
+| `seller_id` | `VARCHAR` |
+| `shipping_limit_date` | `TIMESTAMP` |
+| `price` | `DOUBLE` |
+| `freight_value` | `DOUBLE` |
+
+### olist_order_payments_dataset.csv
+
+| Colonne | Type inféré |
+|---|---|
+| `order_id` | `VARCHAR` |
+| `payment_sequential` | `BIGINT` |
+| `payment_type` | `VARCHAR` |
+| `payment_installments` | `BIGINT` |
+| `payment_value` | `DOUBLE` |
+
+### olist_order_reviews_dataset.csv
+
+| Colonne | Type inféré |
+|---|---|
+| `review_id` | `VARCHAR` |
+| `order_id` | `VARCHAR` |
+| `review_score` | `BIGINT` |
+| `review_comment_title` | `VARCHAR` |
+| `review_comment_message` | `VARCHAR` |
+| `review_creation_date` | `TIMESTAMP` |
+| `review_answer_timestamp` | `TIMESTAMP` |
+
+
+## 3. Valeurs manquantes
 
 ### olist_customers_dataset.csv
 
@@ -63,7 +155,7 @@ Aucune valeur manquante détectée.
 | `review_comment_title` | 87,658 | 88.34% |
 | `review_comment_message` | 58,256 | 58.71% |
 
-## 3. Doublons sur les clés
+## 4. Doublons sur les clés
 
 | Fichier | Clé | Doublons supplémentaires |
 |---|---|---:|
@@ -74,7 +166,7 @@ Aucune valeur manquante détectée.
 | `olist_order_items_dataset.csv` | `order_id + order_item_id` | 0 |
 | `olist_order_payments_dataset.csv` | `order_id + payment_sequential` | 0 |
 
-## 4. Intégrité des relations
+## 5. Intégrité des relations
 
 | Contrôle | Lignes concernées |
 |---|---:|
@@ -85,7 +177,7 @@ Aucune valeur manquante détectée.
 | Payments sans order | 0 |
 | Reviews sans order | 0 |
 
-## 5. Cohérence des dates
+## 6. Cohérence des dates
 
 | Contrôle | Lignes concernées |
 |---|---:|
@@ -95,6 +187,6 @@ Aucune valeur manquante détectée.
 | Livraison client avant transporteur | 23 |
 | Livraison estimée avant achat | 0 |
 
-## 6. Conclusion
+## 7. Conclusion
 
-Ce rapport documente les volumes, valeurs manquantes, doublons, relations entre fichiers et incohérences de dates avant l'import MongoDB.
+Ce rapport documente les volumes, types de colonnes, valeurs manquantes, doublons, relations entre fichiers et incohérences de dates avant l'import MongoDB.
