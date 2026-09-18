@@ -1,15 +1,12 @@
 services:
   mongodb:
-    image: mongo:8.3.8
+    image: mongo:8.0
     container_name: mongodb_olist
     restart: unless-stopped
-
     env_file:
-      - ../.env
-
+      - ../.env.docker
     volumes:
       - mongo_data:/data/db
-
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -24,19 +21,14 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-
     env_file:
-      - ../.env
-
-    command: ["python", "-m", "src.ingestion.mongo_ingester"]
-
+      - ../.env.docker
+    command: ["python", "-m", "src.ingestion.main"]
     volumes:
       - ../data:/app/data
-
     depends_on:
       mongodb:
         condition: service_healthy
-
     networks:
       - olist_net
 
@@ -47,22 +39,17 @@ services:
 
     container_name: olist_app
     restart: unless-stopped
-
     ports:
       - "8000:8000"
-
     env_file:
-      - ../.env
-
+      - ../.env.docker
     volumes:
       - ../data:/app/data
-
     depends_on:
       mongodb:
         condition: service_healthy
       ingest:
         condition: service_completed_successfully
-
     networks:
       - olist_net
 
