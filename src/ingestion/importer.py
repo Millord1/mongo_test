@@ -43,7 +43,7 @@ def download_and_move_dataset() -> Path:
 
 def clean_data_dir():
     """Supprime tous les fichiers CSV présents dans le dossier data_dir."""
-    print(f"🧹 Nettoyage du dossier {data_dir}...")
+    print(f"Nettoyage du dossier {data_dir}...")
     for file in data_dir.glob("*.csv"):
         file.unlink()
 

@@ -7,6 +7,7 @@ from src.config.apis import DatasetNames
 from src.config.sql import QueryNames
 from src.database.duckdb import DuckDB
 from src.database.mongodb import MongoDB
+from src.ingestion.importer import ensure_csv_files_present
 
 project_root = Path(__file__).resolve().parents[2]
 data_dir = project_root / "data"
@@ -72,9 +73,7 @@ def import_query(
     print(f"- Import de la collection '{query.value}'...")
 
     records = duckdb.records(duckdb.query(query, **params))
-    print(f"DEBUG {query.value}:")
-    print(records[0] if records else "Aucun résultat")
-    print(f"Colonnes: {list(records[0].keys()) if records else []}")
+
     if id_field:
         for record in records:
             record["_id"] = record.pop(id_field)
@@ -155,6 +154,22 @@ def group_by_order(records: list[dict]) -> dict[str, list[dict]]:
         grouped.setdefault(order_id, []).append(record)
 
     return grouped
+
+
+def create_indexes(db):
+    """Crée les index MongoDB utiles aux requêtes de l'API."""
+
+    print("\nCréation des index MongoDB...")
+
+    index_name = db.orders.create_index(
+        [
+            ("customer_id", 1),
+            ("order_purchase_timestamp", -1),
+        ],
+        name="idx_customer_purchase_date",
+    )
+
+    print(f"  ✓ Index créé : {index_name}")
 
 
 def import_all_collections():
@@ -250,8 +265,16 @@ def import_all_collections():
             items_path=dataset_path(DatasetNames.order_items),
         )
 
+        create_indexes(db)
+
     print("\n✅ Import terminé avec succès !")
 
 
-if __name__ == "__main__":
+def run_ingestion():
+    """Vérifie les fichiers sources puis importe les données dans MongoDB."""
+    ensure_csv_files_present()
     import_all_collections()
+
+
+if __name__ == "__main__":
+    run_ingestion()

@@ -2,6 +2,9 @@ from datetime import datetime
 from unittest import TestCase, skipIf
 
 from fastapi import FastAPI
+from pymongo.errors import PyMongoError
+
+from src.main import mongo_exception_handler
 
 try:
     from fastapi.testclient import TestClient
@@ -9,7 +12,7 @@ except ImportError:
     TestClient = None
 
 from src.api.routers import analytics, customers, orders, products
-from src.repositories.analytics_repository import AnalyticsRepository, _NORMALIZATION
+from src.repositories.analytics_repository import _NORMALIZATION, AnalyticsRepository
 from src.schemas.analytics import (
     CategoryAnalyticsResponse,
     CustomerAnalyticsResponse,
@@ -186,7 +189,7 @@ class AnalyticsRepositoryNormalizationTests(TestCase):
 class ApiRouteContractTests(TestCase):
     def test_analytics_endpoint_returns_mongo_id(self):
         class FakeAnalyticsRepository:
-            def get_product_analytics(self):
+            def get_product_analytics(self, limit=20):
                 return [
                     {
                         "_id": "product-1",
@@ -282,3 +285,59 @@ class ApiRouteContractTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["items"][0]["_id"], "customer-1")
         self.assertNotIn("customer_id", response.json()["items"][0])
+
+    def test_analytics_limit_rejects_value_above_100(self):
+        class FakeAnalyticsRepository:
+            def get_product_analytics(self, limit=20):
+                return []
+
+        app = FastAPI()
+        app.include_router(analytics.router)
+        app.dependency_overrides[analytics.get_analytics_repository] = (
+            lambda: FakeAnalyticsRepository()
+        )
+
+        with TestClient(app) as client:
+            response = client.get("/analytics/products?limit=500")
+
+        self.assertEqual(response.status_code, 422)
+
+    def test_missing_order_returns_404(self):
+        class FakeOrderRepository:
+            def get_by_id(self, order_id):
+                return None
+
+        app = FastAPI()
+        app.include_router(orders.router)
+        app.dependency_overrides[orders.get_order_repository] = (
+            lambda: FakeOrderRepository()
+        )
+
+        with TestClient(app) as client:
+            response = client.get("/orders/order-does-not-exist")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(
+            response.json()["detail"],
+            "Commande introuvable",
+        )
+
+    def test_mongodb_error_returns_503(self):
+        app = FastAPI()
+        app.add_exception_handler(
+            PyMongoError,
+            mongo_exception_handler,
+        )
+
+        @app.get("/mongo-error")
+        def mongo_error():
+            raise PyMongoError("MongoDB unavailable")
+
+        with TestClient(app) as client:
+            response = client.get("/mongo-error")
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(
+            response.json()["detail"],
+            "Service MongoDB temporairement indisponible",
+        )

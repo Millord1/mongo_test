@@ -1,7 +1,9 @@
 import traceback
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from pymongo.errors import PyMongoError
 
 from src.api.routers.analytics import router as analytics_router
 from src.api.routers.customers import router as customers_router
@@ -44,7 +46,7 @@ async def lifespan(app: FastAPI):
             print("🟢 Index MongoDB créés.")
 
     except Exception as e:
-        print(f"🔴 Erreur lors de l'initialisation de la base de données : {e}")
+        print(f"🔴 Erreur de connexion à MongoDB : {e}")
 
     yield
 
@@ -57,6 +59,18 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(PyMongoError)
+async def mongo_exception_handler(
+    request: Request,
+    exc: PyMongoError,
+):
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "Service MongoDB temporairement indisponible"},
+    )
+
 
 app.include_router(orders_router)
 app.include_router(customers_router)
