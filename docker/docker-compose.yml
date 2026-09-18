@@ -13,7 +13,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-
     networks:
       - olist_net
 
@@ -53,10 +52,8 @@ services:
     networks:
       - olist_net
 
-
 volumes:
   mongo_data:
-
 
 networks:
   olist_net:

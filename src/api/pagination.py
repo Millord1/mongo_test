@@ -18,7 +18,11 @@ class PageResponse(BaseModel, Generic[T]):
 class OrderQueryParams(BaseModel):
     page: int = Field(1, ge=1, description="Numéro de la page")
     size: int = Field(20, ge=1, le=100, description="Taille de la page")
-    status: OrderStatus | None = Field(None, description="Filtrer par statut")
+    status: OrderStatus | None = Field(
+        default=None,
+        alias="order_status",
+        description="Filtrer par statut",
+    )
 
     @property
     def skip(self) -> int:

@@ -49,21 +49,20 @@ def clean_data_dir():
 
 
 def ensure_csv_files_present():
-    """Vérifie la présence exacte des 8 fichiers définis dans DatasetNames."""
+    """Vérifie que les fichiers CSV requis sont présents."""
     expected_filenames = get_expected_csv_filenames()
-    existing_files = list(data_dir.glob("*.csv"))
-    existing_filenames = {file.name for file in existing_files}
+    existing_filenames = {file.name for file in data_dir.glob("*.csv")}
 
-    if existing_filenames == expected_filenames:
+    missing_files = expected_filenames - existing_filenames
+
+    if not missing_files:
         print(
             f"Les {len(expected_filenames)} fichiers CSV requis sont tous présents "
             f"dans {data_dir}."
         )
         return
 
-    print("Fichiers manquants ou invalides dans data/.")
-    clean_data_dir()
-
+    print(f"Fichiers manquants : {missing_files}")
     print("Téléchargement du dataset...")
     download_and_move_dataset()
 

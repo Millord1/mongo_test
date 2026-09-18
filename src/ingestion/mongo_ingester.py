@@ -271,8 +271,14 @@ def import_all_collections():
 
 
 def run_ingestion():
-    """Vérifie les fichiers sources puis importe les données dans MongoDB."""
+    """Initialise MongoDB uniquement si les données ne sont pas déjà présentes."""
     ensure_csv_files_present()
+
+    with MongoDB() as db:
+        if db.orders.count_documents({}) > 0:
+            print("✓ MongoDB est déjà initialisé, import ignoré.")
+            return
+
     import_all_collections()
 
 
