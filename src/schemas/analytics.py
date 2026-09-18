@@ -3,9 +3,11 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class MonthlyMetricsResponse(BaseModel):
+class AnalyticsBaseResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
+
+class MonthlyMetricsResponse(AnalyticsBaseResponse):
     month: datetime = Field(alias="_id")
     orders: int = 0
     delivered_orders: int = 0
@@ -17,9 +19,7 @@ class MonthlyMetricsResponse(BaseModel):
     avg_review_score: float | None = None
 
 
-class ProductAnalyticsResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
+class ProductAnalyticsResponse(AnalyticsBaseResponse):
     product_id: str = Field(alias="_id")
     product_category_name: str | None = None
     product_category_name_english: str | None = None
@@ -31,9 +31,7 @@ class ProductAnalyticsResponse(BaseModel):
     unique_sellers: int = 0
 
 
-class CategoryAnalyticsResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
+class CategoryAnalyticsResponse(AnalyticsBaseResponse):
     id: str = Field(alias="_id")
     category_english: str | None = None
     orders: int = 0
@@ -43,9 +41,7 @@ class CategoryAnalyticsResponse(BaseModel):
     avg_price: float | None = None
 
 
-class SellerAnalyticsResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
+class SellerAnalyticsResponse(AnalyticsBaseResponse):
     seller_id: str = Field(alias="_id")
     orders: int = 0
     revenue: float = 0.0
@@ -55,9 +51,7 @@ class SellerAnalyticsResponse(BaseModel):
     delivered_orders: int = 0
 
 
-class CustomerAnalyticsResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
+class CustomerAnalyticsResponse(AnalyticsBaseResponse):
     customer_id: str = Field(alias="_id")
     customer_unique_id: str
     customer_zip_code_prefix: int
@@ -70,9 +64,7 @@ class CustomerAnalyticsResponse(BaseModel):
     last_order: datetime | None = None
 
 
-class GeographyAnalyticsResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
+class GeographyAnalyticsResponse(AnalyticsBaseResponse):
     id: str = Field(alias="_id")
     unique_customers: int = 0
     orders: int = 0

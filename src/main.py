@@ -39,6 +39,10 @@ async def lifespan(app: FastAPI):
 
         seed_database_if_empty()
 
+        with MongoDB() as db:
+            MongoDB.create_indexes(db)
+            print("🟢 Index MongoDB créés.")
+
     except Exception as e:
         print(f"🔴 Erreur lors de l'initialisation de la base de données : {e}")
 
@@ -49,7 +53,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Olist E-Commerce API",
-    description="API légère et performante pour l'exploration du dataset Olist",
+    description="API légère pour l'exploration du dataset Olist",
     version="1.0.0",
     lifespan=lifespan,
 )
