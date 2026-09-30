@@ -85,6 +85,7 @@ Sous Bash :
 
 ```bash
 cp .env.example .env
+cp .env.example .env.docker
 ```
 
 Le fichier contient notamment :
